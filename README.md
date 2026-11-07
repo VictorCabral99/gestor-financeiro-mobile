@@ -79,10 +79,11 @@ Pacotes filtrados no MVP:
 ## Fluxo
 
 1. Banco notifica compra/Pix → listener → parser → dedupe → `PendingSuggestion`
-2. **Pendentes** → **Confirmar** (valor, estabelecimento, conta/cartão, categoria/subcategoria)
-3. Tab **Home** — guia do mês (**Caixa · Pendentes · Faturas · Livre**); tab **Relatórios** — registros; tab **Config** — cadastros
-4. Conta = débito · Cartão = crédito (implícito ao escolher a fonte)
-5. Categorias com **um** nível de subcategoria
+2. Mesmo com o app **fechado**, sobe um aviso na tela (heads-up / janela) com **Registrar** ou **Agora não**
+3. **Registrar** abre a confirmação (valor, estabelecimento, conta/cartão, categoria/subcategoria)
+4. Tab **Home** — guia do mês (**Caixa · Pendentes · Faturas · Livre**); tab **Relatórios** — registros; tab **Config** — cadastros
+5. Conta = débito · Cartão = crédito (implícito ao escolher a fonte)
+6. Categorias com **um** nível de subcategoria
 
 ### Guia do mês (Home)
 

@@ -1,5 +1,6 @@
 package com.victorcabral.gestorfinanceiro.ui.settings
 
+import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -26,7 +28,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.victorcabral.gestorfinanceiro.BuildConfig
+import com.victorcabral.gestorfinanceiro.notification.SuggestionNotifier
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +45,9 @@ fun SettingsScreen(
     onOpenPending: () -> Unit,
     onOpenDebugSimulator: (() -> Unit)?,
 ) {
+    val context = LocalContext.current
+    val notifier = SuggestionNotifier(context)
+    val showFullScreenSetting = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -89,6 +96,19 @@ fun SettingsScreen(
                 subtitle = "Listener Nubank / Santander",
                 onClick = onOpenOnboarding,
             )
+            if (showFullScreenSetting) {
+                val granted = notifier.canUseFullScreenIntent()
+                SettingsRow(
+                    icon = { Icon(Icons.Default.PhoneAndroid, contentDescription = null) },
+                    title = "Aviso sobre a tela",
+                    subtitle = if (granted) {
+                        "Permitido — janela ao receber compra"
+                    } else {
+                        "Ative para abrir a janela com o app fechado"
+                    },
+                    onClick = { notifier.openFullScreenIntentSettings() },
+                )
+            }
             SettingsRow(
                 icon = { Icon(Icons.Default.Notifications, contentDescription = null) },
                 title = "Sugestões pendentes",

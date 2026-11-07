@@ -64,7 +64,8 @@ fun OnboardingScreen(onContinue: () -> Unit) {
             )
             Text(
                 text = "1. Ative o acesso a notificações (listener) para este app.\n" +
-                    "2. Quando o banco notificar uma compra/Pix, nasce uma sugestão pendente.\n" +
+                    "2. Quando o banco notificar uma compra/Pix, sobe um aviso na tela " +
+                    "(mesmo com o app fechado) com a opção de registrar.\n" +
                     "3. Confirme valor, origem, descrição e categoria.\n\n" +
                     "Nenhuma informação sai do aparelho.",
                 style = MaterialTheme.typography.bodyMedium,

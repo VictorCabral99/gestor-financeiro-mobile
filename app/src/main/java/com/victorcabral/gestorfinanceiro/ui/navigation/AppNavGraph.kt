@@ -38,14 +38,27 @@ import com.victorcabral.gestorfinanceiro.util.NotificationAccess
 fun AppNavGraph(
     startDestination: String,
     openPendingOnLaunch: Boolean = false,
+    openConfirmPendingId: Long? = null,
 ) {
     val navController = rememberNavController()
     val app = LocalContext.current.applicationContext as GestorFinanceiroApp
     val repository = remember { app.repository }
 
-    LaunchedEffect(openPendingOnLaunch) {
-        if (openPendingOnLaunch && startDestination == Routes.MAIN) {
-            navController.navigate(Routes.PENDING)
+    LaunchedEffect(openConfirmPendingId, openPendingOnLaunch) {
+        when {
+            openConfirmPendingId != null && openConfirmPendingId > 0L -> {
+                if (startDestination != Routes.MAIN) {
+                    navController.navigate(Routes.MAIN) {
+                        popUpTo(startDestination) { inclusive = true }
+                    }
+                }
+                navController.navigate(Routes.confirm(openConfirmPendingId)) {
+                    launchSingleTop = true
+                }
+            }
+            openPendingOnLaunch && startDestination == Routes.MAIN -> {
+                navController.navigate(Routes.PENDING)
+            }
         }
     }
 
