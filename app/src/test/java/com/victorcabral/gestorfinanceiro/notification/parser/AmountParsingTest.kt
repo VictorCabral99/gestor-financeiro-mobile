@@ -15,4 +15,10 @@ class AmountParsingTest {
         assertThat(AmountParsing.extractAmountCents("Valor 9,99"))
             .isEqualTo(999L)
     }
+
+    @Test
+    fun `prefers R$ amount`() {
+        assertThat(AmountParsing.extractAmountCents("Pedido 12345 R$ 20,00 ok"))
+            .isEqualTo(2000L)
+    }
 }

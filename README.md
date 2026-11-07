@@ -2,21 +2,22 @@
 
 App Android (Kotlin + Jetpack Compose) que transforma notificações do **Nubank** e **Santander** em sugestões de despesa. Você confirma, descreve e categoriza; o mês fica consolidado no aparelho.
 
-MVP local-only — sem backend, sem Play Store neste repositório.
+MVP local-only — sem backend. Sem publicação na Play Store neste repositório.
 
 ## Stack
 
 - Kotlin, minSdk **26** (Android 8+), target/compileSdk **35**
 - Jetpack Compose + Navigation
-- Room (Expense, Category, PendingSuggestion)
+- Room (Expense, Category, PendingSuggestion, PaymentSource, Income, FixedExpense, CardInvoice)
 - `NotificationListenerService` + parsers por `packageName`
+- Notificação local opcional ao criar sugestão (`POST_NOTIFICATIONS` no Android 13+)
 
 ## Como gerar o APK (debug)
 
 Pré-requisitos: JDK 17+, Android SDK (platform 35 + build-tools).
 
 ```bash
-# opcional: aponte o SDK
+# aponte o SDK (não commitar local.properties)
 echo "sdk.dir=$HOME/Android/Sdk" > local.properties
 
 ./gradlew assembleDebug
@@ -28,60 +29,103 @@ APK gerado em:
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Instale no aparelho:
+Instale no aparelho (sideload):
 
 ```bash
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Release sem minify (ainda sem keystore de distribuição):
+## Release local (sem secrets no git)
+
+Versão atual: **0.0.1** (`versionCode` 1).
+
+O `assembleRelease` gera APK assinado com a keystore **debug** do Android neste MVP (`isMinifyEnabled = false`) — instalável via sideload, não é assinatura de produção. Para um release próprio:
+
+1. Crie uma keystore **fora do repositório** (nunca commite `.jks` / `.keystore` / senhas):
+
+```bash
+keytool -genkeypair -v -keystore "$HOME/keys/gestor-financeiro.jks" -keyalg RSA -keysize 2048 -validity 10000 -alias gestor
+```
+
+2. Crie `keystore.properties` na raiz do projeto (já está no `.gitignore` se você adicionar o nome) **ou** passe via `~/.gradle/gradle.properties` / variáveis de ambiente — não versionar.
+
+3. Exemplo de bloco opcional em `app/build.gradle.kts` (ajuste paths localmente; não precisa estar commitado):
+
+```kotlin
+// signingConfigs { create("release") { ... } }
+// buildTypes.getByName("release") { signingConfig = signingConfigs.getByName("release") }
+```
 
 ```bash
 ./gradlew assembleRelease
+# app/build/outputs/apk/release/app-release.apk  (ou app-release-unsigned.apk)
 ```
 
 ## Como ativar o acesso a notificações
 
-1. Abra o app → tela de onboarding (ou ícone de engrenagem na home).
+1. Abra o app → onboarding (ou engrenagem na home).
 2. Toque em **Abrir configuração de notificações**.
-3. Ative **Gestor Financeiro** na lista de apps com acesso a notificações.
-4. Volte ao app e continue.
+3. Ative **Gestor Financeiro** na lista de apps com acesso a notificações (Notification Listener).
+4. Volte ao app. A home mostra um aviso se o listener estiver **off**.
+5. (Opcional, Android 13+) aceite `POST_NOTIFICATIONS` para alertas locais de “Nova sugestão de despesa”.
 
-Sem essa permissão o listener não recebe pushes dos bancos; o cadastro manual de despesas continua disponível.
+Sem o listener, o app **não** recebe pushes dos bancos; o cadastro manual continua disponível.
 
 Pacotes filtrados no MVP:
 
-| Banco     | packageName           |
-|-----------|-----------------------|
-| Nubank    | `com.nu.production`   |
-| Santander | `com.santander.app`   |
+| Banco     | packageName                 |
+|-----------|-----------------------------|
+| Nubank    | `com.nu.production`         |
+| Santander | `com.santander.app`         |
 
-## Telas
+## Fluxo
 
-1. **Onboarding** — explica e abre settings de notification access  
-2. **Mês** — total + lista de despesas  
-3. **Pendentes** — sugestões vindas de notificações  
-4. **Confirmar** — valor, origem, descrição, categoria  
-5. **Categorias** — lista editável (seed: alimentação, transporte, moradia, lazer, outros)
+1. Banco notifica compra/Pix → listener → parser → dedupe → `PendingSuggestion`
+2. Mesmo com o app **fechado**, sobe um aviso na tela (heads-up / janela) com **Registrar** ou **Agora não**
+3. **Registrar** abre a confirmação (valor, estabelecimento, conta/cartão, categoria/subcategoria)
+4. Tab **Home** — guia do mês (**Caixa · Pendentes · Faturas · Livre**); tab **Relatórios** — registros; tab **Config** — cadastros
+5. Conta = débito · Cartão = crédito (implícito ao escolher a fonte)
+6. Categorias com **um** nível de subcategoria
 
-## Testes unitários (parsers)
+### Guia do mês (Home)
+
+| Card | Significado |
+|------|-------------|
+| **Caixa** | Receitas (salário) − gastos em **conta** no mês |
+| **Pendentes** | Soma das **despesas fixas** ativas |
+| **Faturas** | Faturas de **cartão** do mês ainda em aberto |
+| **Livre** | `Caixa − Pendentes − Faturas` (o que sobra de verdade) |
+
+Cadastre receitas, fixas e faturas pela Home (toque no card) ou em **Config**.
+
+Se o parse falhar parcialmente, a sugestão fica marcada para **revisar manualmente** com o texto cru.
+
+## Simulador de notificações (debug only)
+
+No APK **debug**: tab **Config** → **Simulador de notificações**.
+
+1. Escolha um fixture Nubank/Santander → **Simular esta notificação**.
+2. Abra **Pendentes** (sino) para ver a sugestão gerada pelo mesmo pipeline do listener.
+
+**Abordagem:** injeção direta no `NotificationPipeline` com o `packageName` do banco (fixtures).  
+Não usamos `NotificationManager` para fingir ser outro app — o Android sempre atribui a notificação ao nosso package, então o listener filtrado por `com.nu.production` / `com.santander.app` não veria o spoof.
+
+## Testes
 
 ```bash
-./gradlew test
+./gradlew assembleDebug testDebugUnitTest
 ```
 
-Parsers Nubank/Santander ainda são stubs com fixtures de exemplo — há `TODO`s para endurecer com textos reais de aparelho.
-
-## Estrutura relevante
+## Estrutura
 
 ```text
 app/src/main/java/.../
   data/           Room entities, DAOs, repository
-  notification/   Listener, pipeline, dedupe, parsers
+  notification/   Listener, pipeline, dedupe, parsers, notifier
   ui/             Compose screens (PT-BR)
 ```
 
-## Fora do escopo deste scaffold
+## Fora do escopo
 
-- Publicação na Play Store / assinatura de release para loja
-- Outros bancos, sync em nuvem, open banking
+- Play Store listing / distribuição na loja
+- Outros bancos (estrutura plugável), sync em nuvem, open banking

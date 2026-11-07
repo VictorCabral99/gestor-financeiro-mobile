@@ -89,11 +89,20 @@ private fun PendingRow(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(
-            text = suggestion.bankLabel,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = suggestion.bankLabel,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            if (suggestion.needsManualReview || suggestion.amountCents == null) {
+                Text(
+                    text = "revisar",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+        }
         Text(
             text = MoneyFormat.formatCents(suggestion.amountCents),
             style = MaterialTheme.typography.titleLarge,

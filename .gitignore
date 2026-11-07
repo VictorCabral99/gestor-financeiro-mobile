@@ -41,6 +41,8 @@ obj/
 *.jks
 *.keystore
 !debug.keystore
+keystore.properties
+*.pepk
 
 # OS
 .DS_Store

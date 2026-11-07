@@ -1,6 +1,7 @@
 package com.victorcabral.gestorfinanceiro.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -9,45 +10,92 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.victorcabral.gestorfinanceiro.BuildConfig
 import com.victorcabral.gestorfinanceiro.GestorFinanceiroApp
 import com.victorcabral.gestorfinanceiro.ui.categories.CategoriesScreen
 import com.victorcabral.gestorfinanceiro.ui.categories.CategoriesViewModel
 import com.victorcabral.gestorfinanceiro.ui.confirm.ConfirmExpenseScreen
 import com.victorcabral.gestorfinanceiro.ui.confirm.ConfirmExpenseViewModel
-import com.victorcabral.gestorfinanceiro.ui.home.HomeScreen
+import com.victorcabral.gestorfinanceiro.ui.dashboard.DashboardViewModel
+import com.victorcabral.gestorfinanceiro.ui.debug.NotificationSimulatorScreen
+import com.victorcabral.gestorfinanceiro.ui.debug.NotificationSimulatorViewModel
+import com.victorcabral.gestorfinanceiro.ui.fixed.FixedExpensesScreen
+import com.victorcabral.gestorfinanceiro.ui.fixed.FixedExpensesViewModel
 import com.victorcabral.gestorfinanceiro.ui.home.HomeViewModel
+import com.victorcabral.gestorfinanceiro.ui.incomes.IncomesScreen
+import com.victorcabral.gestorfinanceiro.ui.incomes.IncomesViewModel
+import com.victorcabral.gestorfinanceiro.ui.invoices.InvoicesScreen
+import com.victorcabral.gestorfinanceiro.ui.invoices.InvoicesViewModel
+import com.victorcabral.gestorfinanceiro.ui.main.MainScaffold
 import com.victorcabral.gestorfinanceiro.ui.onboarding.OnboardingScreen
+import com.victorcabral.gestorfinanceiro.ui.payments.PaymentSourcesScreen
+import com.victorcabral.gestorfinanceiro.ui.payments.PaymentSourcesViewModel
 import com.victorcabral.gestorfinanceiro.ui.pending.PendingScreen
 import com.victorcabral.gestorfinanceiro.ui.pending.PendingViewModel
 import com.victorcabral.gestorfinanceiro.util.NotificationAccess
 
 @Composable
-fun AppNavGraph(startDestination: String) {
+fun AppNavGraph(
+    startDestination: String,
+    openPendingOnLaunch: Boolean = false,
+    openConfirmPendingId: Long? = null,
+) {
     val navController = rememberNavController()
     val app = LocalContext.current.applicationContext as GestorFinanceiroApp
     val repository = remember { app.repository }
+
+    LaunchedEffect(openConfirmPendingId, openPendingOnLaunch) {
+        when {
+            openConfirmPendingId != null && openConfirmPendingId > 0L -> {
+                if (startDestination != Routes.MAIN) {
+                    navController.navigate(Routes.MAIN) {
+                        popUpTo(startDestination) { inclusive = true }
+                    }
+                }
+                navController.navigate(Routes.confirm(openConfirmPendingId)) {
+                    launchSingleTop = true
+                }
+            }
+            openPendingOnLaunch && startDestination == Routes.MAIN -> {
+                navController.navigate(Routes.PENDING)
+            }
+        }
+    }
 
     NavHost(navController = navController, startDestination = startDestination) {
         composable(Routes.ONBOARDING) {
             OnboardingScreen(
                 onContinue = {
-                    navController.navigate(Routes.HOME) {
+                    navController.navigate(Routes.MAIN) {
                         popUpTo(Routes.ONBOARDING) { inclusive = true }
                     }
                 },
             )
         }
 
-        composable(Routes.HOME) {
-            val vm: HomeViewModel = viewModel(
+        composable(Routes.MAIN) {
+            val dashboardVm: DashboardViewModel = viewModel(
+                factory = DashboardViewModel.factory(repository),
+            )
+            val reportsVm: HomeViewModel = viewModel(
                 factory = HomeViewModel.factory(repository),
             )
-            HomeScreen(
-                viewModel = vm,
+            MainScaffold(
+                dashboardViewModel = dashboardVm,
+                reportsViewModel = reportsVm,
                 onOpenPending = { navController.navigate(Routes.PENDING) },
                 onOpenCategories = { navController.navigate(Routes.CATEGORIES) },
+                onOpenPaymentSources = { navController.navigate(Routes.PAYMENT_SOURCES) },
+                onOpenIncomes = { navController.navigate(Routes.INCOMES) },
+                onOpenFixedExpenses = { navController.navigate(Routes.FIXED_EXPENSES) },
+                onOpenInvoices = { navController.navigate(Routes.INVOICES) },
                 onAddManual = { navController.navigate(Routes.confirm(null)) },
                 onOpenOnboarding = { navController.navigate(Routes.ONBOARDING) },
+                onOpenDebugSimulator = if (BuildConfig.DEBUG) {
+                    { navController.navigate(Routes.DEBUG_SIMULATOR) }
+                } else {
+                    null
+                },
             )
         }
 
@@ -72,6 +120,59 @@ fun AppNavGraph(startDestination: String) {
             )
         }
 
+        composable(Routes.PAYMENT_SOURCES) {
+            val vm: PaymentSourcesViewModel = viewModel(
+                factory = PaymentSourcesViewModel.factory(repository),
+            )
+            PaymentSourcesScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.INCOMES) {
+            val vm: IncomesViewModel = viewModel(
+                factory = IncomesViewModel.factory(repository),
+            )
+            IncomesScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.FIXED_EXPENSES) {
+            val vm: FixedExpensesViewModel = viewModel(
+                factory = FixedExpensesViewModel.factory(repository),
+            )
+            FixedExpensesScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.INVOICES) {
+            val vm: InvoicesViewModel = viewModel(
+                factory = InvoicesViewModel.factory(repository),
+            )
+            InvoicesScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        if (BuildConfig.DEBUG) {
+            composable(Routes.DEBUG_SIMULATOR) {
+                val vm: NotificationSimulatorViewModel = viewModel(
+                    factory = NotificationSimulatorViewModel.factory(app.notificationSimulator),
+                )
+                NotificationSimulatorScreen(
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() },
+                    onOpenPending = { navController.navigate(Routes.PENDING) },
+                )
+            }
+        }
+
         composable(
             route = "confirm?pendingId={pendingId}",
             arguments = listOf(
@@ -90,8 +191,8 @@ fun AppNavGraph(startDestination: String) {
                 viewModel = vm,
                 onBack = { navController.popBackStack() },
                 onSaved = {
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.HOME) { inclusive = false }
+                    navController.navigate(Routes.MAIN) {
+                        popUpTo(Routes.MAIN) { inclusive = false }
                         launchSingleTop = true
                     }
                 },
@@ -101,5 +202,5 @@ fun AppNavGraph(startDestination: String) {
 }
 
 fun resolveStartDestination(context: android.content.Context): String {
-    return if (NotificationAccess.isEnabled(context)) Routes.HOME else Routes.ONBOARDING
+    return if (NotificationAccess.isEnabled(context)) Routes.MAIN else Routes.ONBOARDING
 }

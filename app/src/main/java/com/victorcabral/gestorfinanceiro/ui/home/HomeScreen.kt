@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,23 +38,29 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Aba Relatórios: registros e total do mês com navegação prev/next.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
+    modifier: Modifier = Modifier,
     onOpenPending: () -> Unit,
-    onOpenCategories: () -> Unit,
     onAddManual: () -> Unit,
-    onOpenOnboarding: () -> Unit,
 ) {
     val expenses by viewModel.expenses.collectAsStateWithLifecycle()
     val totalCents by viewModel.totalCents.collectAsStateWithLifecycle()
     val pendingCount by viewModel.pendingCount.collectAsStateWithLifecycle()
+    val monthLabel by viewModel.monthLabel.collectAsStateWithLifecycle()
+    val paymentNames by viewModel.paymentSourceNames.collectAsStateWithLifecycle()
+    val categoryNames by viewModel.categoryNames.collectAsStateWithLifecycle()
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Mês atual") },
+                title = { Text("Relatórios") },
                 actions = {
                     IconButton(onClick = onOpenPending) {
                         BadgedBox(
@@ -66,12 +72,6 @@ fun HomeScreen(
                         ) {
                             Icon(Icons.Default.Notifications, contentDescription = "Pendentes")
                         }
-                    }
-                    IconButton(onClick = onOpenCategories) {
-                        Icon(Icons.Default.Category, contentDescription = "Categorias")
-                    }
-                    IconButton(onClick = onOpenOnboarding) {
-                        Icon(Icons.Default.Settings, contentDescription = "Permissões")
                     }
                 },
             )
@@ -88,11 +88,30 @@ fun HomeScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp),
         ) {
-            Text(
-                text = viewModel.monthLabel,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 8.dp),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                IconButton(onClick = viewModel::previousMonth) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                        contentDescription = "Mês anterior",
+                    )
+                }
+                Text(
+                    text = monthLabel,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.clickable(onClick = viewModel::goToCurrentMonth),
+                )
+                IconButton(onClick = viewModel::nextMonth) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = "Próximo mês",
+                    )
+                }
+            }
+
             Text(
                 text = MoneyFormat.formatCents(totalCents),
                 style = MaterialTheme.typography.displaySmall,
@@ -129,7 +148,12 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     items(expenses, key = { it.id }) { expense ->
-                        ExpenseRow(expense)
+                        ExpenseRow(
+                            expense = expense,
+                            categoryLabel = expense.categoryId?.let { categoryNames[it] },
+                            subcategoryLabel = expense.subcategoryId?.let { categoryNames[it] },
+                            paymentLabel = expense.paymentSourceId?.let { paymentNames[it] },
+                        )
                         HorizontalDivider()
                     }
                 }
@@ -139,8 +163,20 @@ fun HomeScreen(
 }
 
 @Composable
-private fun ExpenseRow(expense: Expense) {
+private fun ExpenseRow(
+    expense: Expense,
+    categoryLabel: String?,
+    subcategoryLabel: String?,
+    paymentLabel: String?,
+) {
     val dateLabel = formatDayMonth(expense.occurredAtEpochMs)
+    val meta = listOfNotNull(
+        paymentLabel,
+        listOfNotNull(categoryLabel, subcategoryLabel).joinToString(" › ").ifBlank { null },
+        expense.origin.takeIf { it.isNotBlank() && it != expense.description },
+        dateLabel,
+    ).joinToString(" · ")
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -153,13 +189,9 @@ private fun ExpenseRow(expense: Expense) {
                 text = expense.description.ifBlank { expense.origin },
                 style = MaterialTheme.typography.titleMedium,
             )
-            Text(
-                text = listOfNotNull(
-                    expense.origin.takeIf { it.isNotBlank() && it != expense.description },
-                    dateLabel,
-                ).joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
-            )
+            if (meta.isNotBlank()) {
+                Text(meta, style = MaterialTheme.typography.bodySmall)
+            }
         }
         Text(
             text = MoneyFormat.formatCents(expense.amountCents),

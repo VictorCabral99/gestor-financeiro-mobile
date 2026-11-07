@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Optional local alerts when a bank suggestion is created (API 33+ runtime). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Full-screen prompt over lock screen / when app is closed. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+
     <application
         android:name=".GestorFinanceiroApp"
         android:allowBackup="true"
@@ -13,6 +18,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.GestorFinanceiro"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -20,6 +26,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Overlay prompt: appears over current screen when a bank purchase arrives. -->
+        <activity
+            android:name=".ui.prompt.SuggestionPromptActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:showOnLockScreen="true"
+            android:showWhenLocked="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.GestorFinanceiro.Prompt"
+            android:turnScreenOn="true" />
+
+        <receiver
+            android:name=".notification.SuggestionActionReceiver"
+            android:exported="false" />
 
         <service
             android:name=".notification.BankNotificationListenerService"
