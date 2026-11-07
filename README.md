@@ -37,7 +37,9 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## Release local (sem secrets no git)
 
-O `assembleRelease` gera APK assinado com a keystore **debug** do Android por padrão neste MVP (`isMinifyEnabled = false`). Para um release próprio:
+Versão atual: **0.0.1** (`versionCode` 1).
+
+O `assembleRelease` gera APK assinado com a keystore **debug** do Android neste MVP (`isMinifyEnabled = false`) — instalável via sideload, não é assinatura de produção. Para um release próprio:
 
 1. Crie uma keystore **fora do repositório** (nunca commite `.jks` / `.keystore` / senhas):
 
