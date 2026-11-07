@@ -16,11 +16,14 @@ import com.victorcabral.gestorfinanceiro.ui.categories.CategoriesScreen
 import com.victorcabral.gestorfinanceiro.ui.categories.CategoriesViewModel
 import com.victorcabral.gestorfinanceiro.ui.confirm.ConfirmExpenseScreen
 import com.victorcabral.gestorfinanceiro.ui.confirm.ConfirmExpenseViewModel
+import com.victorcabral.gestorfinanceiro.ui.dashboard.DashboardViewModel
 import com.victorcabral.gestorfinanceiro.ui.debug.NotificationSimulatorScreen
 import com.victorcabral.gestorfinanceiro.ui.debug.NotificationSimulatorViewModel
-import com.victorcabral.gestorfinanceiro.ui.home.HomeScreen
 import com.victorcabral.gestorfinanceiro.ui.home.HomeViewModel
+import com.victorcabral.gestorfinanceiro.ui.main.MainScaffold
 import com.victorcabral.gestorfinanceiro.ui.onboarding.OnboardingScreen
+import com.victorcabral.gestorfinanceiro.ui.payments.PaymentSourcesScreen
+import com.victorcabral.gestorfinanceiro.ui.payments.PaymentSourcesViewModel
 import com.victorcabral.gestorfinanceiro.ui.pending.PendingScreen
 import com.victorcabral.gestorfinanceiro.ui.pending.PendingViewModel
 import com.victorcabral.gestorfinanceiro.util.NotificationAccess
@@ -35,7 +38,7 @@ fun AppNavGraph(
     val repository = remember { app.repository }
 
     LaunchedEffect(openPendingOnLaunch) {
-        if (openPendingOnLaunch && startDestination == Routes.HOME) {
+        if (openPendingOnLaunch && startDestination == Routes.MAIN) {
             navController.navigate(Routes.PENDING)
         }
     }
@@ -44,21 +47,26 @@ fun AppNavGraph(
         composable(Routes.ONBOARDING) {
             OnboardingScreen(
                 onContinue = {
-                    navController.navigate(Routes.HOME) {
+                    navController.navigate(Routes.MAIN) {
                         popUpTo(Routes.ONBOARDING) { inclusive = true }
                     }
                 },
             )
         }
 
-        composable(Routes.HOME) {
-            val vm: HomeViewModel = viewModel(
+        composable(Routes.MAIN) {
+            val dashboardVm: DashboardViewModel = viewModel(
+                factory = DashboardViewModel.factory(repository),
+            )
+            val reportsVm: HomeViewModel = viewModel(
                 factory = HomeViewModel.factory(repository),
             )
-            HomeScreen(
-                viewModel = vm,
+            MainScaffold(
+                dashboardViewModel = dashboardVm,
+                reportsViewModel = reportsVm,
                 onOpenPending = { navController.navigate(Routes.PENDING) },
                 onOpenCategories = { navController.navigate(Routes.CATEGORIES) },
+                onOpenPaymentSources = { navController.navigate(Routes.PAYMENT_SOURCES) },
                 onAddManual = { navController.navigate(Routes.confirm(null)) },
                 onOpenOnboarding = { navController.navigate(Routes.ONBOARDING) },
                 onOpenDebugSimulator = if (BuildConfig.DEBUG) {
@@ -85,6 +93,16 @@ fun AppNavGraph(
                 factory = CategoriesViewModel.factory(repository),
             )
             CategoriesScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.PAYMENT_SOURCES) {
+            val vm: PaymentSourcesViewModel = viewModel(
+                factory = PaymentSourcesViewModel.factory(repository),
+            )
+            PaymentSourcesScreen(
                 viewModel = vm,
                 onBack = { navController.popBackStack() },
             )
@@ -121,8 +139,8 @@ fun AppNavGraph(
                 viewModel = vm,
                 onBack = { navController.popBackStack() },
                 onSaved = {
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.HOME) { inclusive = false }
+                    navController.navigate(Routes.MAIN) {
+                        popUpTo(Routes.MAIN) { inclusive = false }
                         launchSingleTop = true
                     }
                 },
@@ -132,5 +150,5 @@ fun AppNavGraph(
 }
 
 fun resolveStartDestination(context: android.content.Context): String {
-    return if (NotificationAccess.isEnabled(context)) Routes.HOME else Routes.ONBOARDING
+    return if (NotificationAccess.isEnabled(context)) Routes.MAIN else Routes.ONBOARDING
 }

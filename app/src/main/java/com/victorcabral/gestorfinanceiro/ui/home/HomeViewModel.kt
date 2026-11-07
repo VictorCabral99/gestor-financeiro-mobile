@@ -38,6 +38,24 @@ class HomeViewModel(
         .observePendingCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
+    val categoryNames: StateFlow<Map<Long, String>> = repository
+        .observeAllCategories()
+        .map { list -> list.associate { it.id to it.name } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    val paymentSourceNames: StateFlow<Map<Long, String>> = repository
+        .observeAllPaymentSources()
+        .map { list ->
+            list.associate { source ->
+                val suffix = when (source.type) {
+                    com.victorcabral.gestorfinanceiro.data.entity.PaymentSourceType.ACCOUNT -> "conta"
+                    com.victorcabral.gestorfinanceiro.data.entity.PaymentSourceType.CREDIT_CARD -> "cartão"
+                }
+                source.id to "${source.name} ($suffix)"
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
     fun previousMonth() {
         _month.value = _month.value.previous()
     }

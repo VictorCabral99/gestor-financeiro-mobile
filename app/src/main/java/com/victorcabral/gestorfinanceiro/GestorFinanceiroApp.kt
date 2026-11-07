@@ -33,6 +33,7 @@ class GestorFinanceiroApp : Application() {
             expenseDao = database.expenseDao(),
             categoryDao = database.categoryDao(),
             pendingSuggestionDao = database.pendingSuggestionDao(),
+            paymentSourceDao = database.paymentSourceDao(),
         )
         val notifier = SuggestionNotifier(this).also { it.ensureChannel() }
         notificationPipeline = NotificationPipeline(
@@ -41,7 +42,7 @@ class GestorFinanceiroApp : Application() {
         )
         notificationSimulator = NotificationSimulator(notificationPipeline)
         applicationScope.launch {
-            repository.ensureDefaultCategoriesSeeded()
+            repository.ensureDefaultsSeeded()
         }
     }
 }

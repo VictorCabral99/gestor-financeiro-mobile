@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.victorcabral.gestorfinanceiro.data.entity.PaymentSourceType
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -42,6 +43,8 @@ fun ConfirmExpenseScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
+    val subcategories by viewModel.subcategories.collectAsStateWithLifecycle()
+    val paymentSources by viewModel.paymentSources.collectAsStateWithLifecycle()
 
     LaunchedEffect(state.saved, state.discarded) {
         if (state.saved || state.discarded) onSaved()
@@ -116,7 +119,7 @@ fun ConfirmExpenseScreen(
             OutlinedTextField(
                 value = state.origin,
                 onValueChange = viewModel::onOriginChange,
-                label = { Text("Origem / estabelecimento") },
+                label = { Text("Estabelecimento") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
@@ -127,6 +130,33 @@ fun ConfirmExpenseScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
+
+            Text("Conta ou cartão", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Conta = débito · Cartão = crédito (implícito pela escolha).",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilterChip(
+                    selected = state.selectedPaymentSourceId == null,
+                    onClick = { viewModel.onPaymentSourceSelected(null) },
+                    label = { Text("Não informar") },
+                )
+                paymentSources.forEach { source ->
+                    val suffix = when (source.type) {
+                        PaymentSourceType.ACCOUNT -> "conta"
+                        PaymentSourceType.CREDIT_CARD -> "cartão"
+                    }
+                    FilterChip(
+                        selected = state.selectedPaymentSourceId == source.id,
+                        onClick = { viewModel.onPaymentSourceSelected(source.id) },
+                        label = { Text("${source.name} ($suffix)") },
+                    )
+                }
+            }
 
             Text("Categoria", style = MaterialTheme.typography.titleSmall)
             FlowRow(
@@ -144,6 +174,27 @@ fun ConfirmExpenseScreen(
                         onClick = { viewModel.onCategorySelected(category.id) },
                         label = { Text(category.name) },
                     )
+                }
+            }
+
+            if (state.selectedCategoryId != null && subcategories.isNotEmpty()) {
+                Text("Subcategoria", style = MaterialTheme.typography.titleSmall)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilterChip(
+                        selected = state.selectedSubcategoryId == null,
+                        onClick = { viewModel.onSubcategorySelected(null) },
+                        label = { Text("Nenhuma") },
+                    )
+                    subcategories.forEach { sub ->
+                        FilterChip(
+                            selected = state.selectedSubcategoryId == sub.id,
+                            onClick = { viewModel.onSubcategorySelected(sub.id) },
+                            label = { Text(sub.name) },
+                        )
+                    }
                 }
             }
 

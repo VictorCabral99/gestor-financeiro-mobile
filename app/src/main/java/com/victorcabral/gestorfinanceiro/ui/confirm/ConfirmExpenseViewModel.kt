@@ -4,12 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.victorcabral.gestorfinanceiro.data.entity.Category
+import com.victorcabral.gestorfinanceiro.data.entity.PaymentSource
 import com.victorcabral.gestorfinanceiro.data.repository.FinanceRepository
 import com.victorcabral.gestorfinanceiro.util.MoneyFormat
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -19,6 +23,8 @@ data class ConfirmUiState(
     val origin: String = "",
     val description: String = "",
     val selectedCategoryId: Long? = null,
+    val selectedSubcategoryId: Long? = null,
+    val selectedPaymentSourceId: Long? = null,
     val bankPackage: String? = null,
     val bankLabel: String? = null,
     val rawText: String? = null,
@@ -30,6 +36,7 @@ data class ConfirmUiState(
     val discarded: Boolean = false,
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ConfirmExpenseViewModel(
     private val repository: FinanceRepository,
     private val pendingId: Long?,
@@ -38,7 +45,19 @@ class ConfirmExpenseViewModel(
     val state: StateFlow<ConfirmUiState> = _state.asStateFlow()
 
     val categories: StateFlow<List<Category>> = repository
-        .observeVisibleCategories()
+        .observeVisibleRootCategories()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val subcategories: StateFlow<List<Category>> = _state
+        .flatMapLatest { ui ->
+            val catId = ui.selectedCategoryId
+            if (catId == null) flowOf(emptyList())
+            else repository.observeVisibleSubcategories(catId)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val paymentSources: StateFlow<List<PaymentSource>> = repository
+        .observeVisiblePaymentSources()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     init {
@@ -67,7 +86,14 @@ class ConfirmExpenseViewModel(
     fun onAmountChange(value: String) = _state.update { it.copy(amountText = value, error = null) }
     fun onOriginChange(value: String) = _state.update { it.copy(origin = value, error = null) }
     fun onDescriptionChange(value: String) = _state.update { it.copy(description = value, error = null) }
-    fun onCategorySelected(id: Long?) = _state.update { it.copy(selectedCategoryId = id) }
+
+    fun onCategorySelected(id: Long?) = _state.update {
+        it.copy(selectedCategoryId = id, selectedSubcategoryId = null)
+    }
+
+    fun onSubcategorySelected(id: Long?) = _state.update { it.copy(selectedSubcategoryId = id) }
+
+    fun onPaymentSourceSelected(id: Long?) = _state.update { it.copy(selectedPaymentSourceId = id) }
 
     fun save() {
         val current = _state.value
@@ -87,6 +113,8 @@ class ConfirmExpenseViewModel(
                 origin = current.origin.ifBlank { current.description },
                 description = current.description.ifBlank { current.origin },
                 categoryId = current.selectedCategoryId,
+                subcategoryId = current.selectedSubcategoryId,
+                paymentSourceId = current.selectedPaymentSourceId,
                 bankPackage = current.bankPackage,
                 occurredAtEpochMs = current.occurredAtEpochMs,
                 pendingIdToDismiss = current.pendingId,

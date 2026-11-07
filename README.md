@@ -79,19 +79,19 @@ Pacotes filtrados no MVP:
 ## Fluxo
 
 1. Banco notifica compra/Pix → listener → parser → dedupe → `PendingSuggestion`
-2. Tela **Pendentes** → **Confirmar** (editar valor/origem/descrição/categoria ou descartar)
-3. **Mês** mostra lista + total; setas navegam mês anterior/próximo
-4. **Categorias**: criar, renomear, ocultar
+2. **Pendentes** → **Confirmar** (valor, estabelecimento, conta/cartão, categoria/subcategoria)
+3. Tab **Home** — dashboards; tab **Relatórios** — registros do mês; tab **Config** — cadastros
+4. Conta = débito · Cartão = crédito (implícito ao escolher a fonte)
+5. Categorias com **um** nível de subcategoria
 
 Se o parse falhar parcialmente, a sugestão fica marcada para **revisar manualmente** com o texto cru.
 
 ## Simulador de notificações (debug only)
 
-No APK **debug**, a home mostra um ícone de **besouro** (bug) na barra superior.
+No APK **debug**: tab **Config** → **Simulador de notificações**.
 
-1. Abra o app debug → (pule o onboarding se quiser) → toque no ícone de besouro.
-2. Escolha um fixture Nubank/Santander e toque em **Simular esta notificação**.
-3. Abra **Pendentes** (sino) para ver a sugestão gerada pelo mesmo pipeline do listener.
+1. Escolha um fixture Nubank/Santander → **Simular esta notificação**.
+2. Abra **Pendentes** (sino) para ver a sugestão gerada pelo mesmo pipeline do listener.
 
 **Abordagem:** injeção direta no `NotificationPipeline` com o `packageName` do banco (fixtures).  
 Não usamos `NotificationManager` para fingir ser outro app — o Android sempre atribui a notificação ao nosso package, então o listener filtrado por `com.nu.production` / `com.santander.app` não veria o spoof.
