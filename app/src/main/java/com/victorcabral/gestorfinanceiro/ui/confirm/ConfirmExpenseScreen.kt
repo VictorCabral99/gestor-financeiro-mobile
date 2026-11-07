@@ -2,8 +2,6 @@ package com.victorcabral.gestorfinanceiro.ui.confirm
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,11 +13,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -28,13 +29,18 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.victorcabral.gestorfinanceiro.data.entity.PaymentSourceType
+import com.victorcabral.gestorfinanceiro.data.entity.Category
+import com.victorcabral.gestorfinanceiro.data.entity.PaymentSource
+import com.victorcabral.gestorfinanceiro.util.PaymentSourceInference
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConfirmExpenseScreen(
     viewModel: ConfirmExpenseViewModel,
@@ -131,71 +137,30 @@ fun ConfirmExpenseScreen(
                 singleLine = true,
             )
 
-            Text("Conta ou cartão", style = MaterialTheme.typography.titleSmall)
-            Text(
-                "Conta = débito · Cartão = crédito (implícito pela escolha).",
-                style = MaterialTheme.typography.bodySmall,
+            PaymentSourceDropdown(
+                sources = paymentSources,
+                selectedId = state.selectedPaymentSourceId,
+                hint = state.paymentSourceHint
+                    ?: "Conta = débito · Cartão = crédito. Em geral a notificação do banco já indica isso.",
+                onSelected = viewModel::onPaymentSourceSelected,
             )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip(
-                    selected = state.selectedPaymentSourceId == null,
-                    onClick = { viewModel.onPaymentSourceSelected(null) },
-                    label = { Text("Não informar") },
-                )
-                paymentSources.forEach { source ->
-                    val suffix = when (source.type) {
-                        PaymentSourceType.ACCOUNT -> "conta"
-                        PaymentSourceType.CREDIT_CARD -> "cartão"
-                    }
-                    FilterChip(
-                        selected = state.selectedPaymentSourceId == source.id,
-                        onClick = { viewModel.onPaymentSourceSelected(source.id) },
-                        label = { Text("${source.name} ($suffix)") },
-                    )
-                }
-            }
 
-            Text("Categoria", style = MaterialTheme.typography.titleSmall)
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip(
-                    selected = state.selectedCategoryId == null,
-                    onClick = { viewModel.onCategorySelected(null) },
-                    label = { Text("Sem categoria") },
-                )
-                categories.forEach { category ->
-                    FilterChip(
-                        selected = state.selectedCategoryId == category.id,
-                        onClick = { viewModel.onCategorySelected(category.id) },
-                        label = { Text(category.name) },
-                    )
-                }
-            }
+            CategoryDropdown(
+                label = "Categoria",
+                noneLabel = "Sem categoria",
+                options = categories,
+                selectedId = state.selectedCategoryId,
+                onSelected = viewModel::onCategorySelected,
+            )
 
             if (state.selectedCategoryId != null && subcategories.isNotEmpty()) {
-                Text("Subcategoria", style = MaterialTheme.typography.titleSmall)
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    FilterChip(
-                        selected = state.selectedSubcategoryId == null,
-                        onClick = { viewModel.onSubcategorySelected(null) },
-                        label = { Text("Nenhuma") },
-                    )
-                    subcategories.forEach { sub ->
-                        FilterChip(
-                            selected = state.selectedSubcategoryId == sub.id,
-                            onClick = { viewModel.onSubcategorySelected(sub.id) },
-                            label = { Text(sub.name) },
-                        )
-                    }
-                }
+                CategoryDropdown(
+                    label = "Subcategoria",
+                    noneLabel = "Nenhuma",
+                    options = subcategories,
+                    selectedId = state.selectedSubcategoryId,
+                    onSelected = viewModel::onSubcategorySelected,
+                )
             }
 
             if (state.error != null) {
@@ -220,6 +185,108 @@ fun ConfirmExpenseScreen(
                 ) {
                     Text("Descartar sugestão")
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PaymentSourceDropdown(
+    sources: List<PaymentSource>,
+    selectedId: Long?,
+    hint: String,
+    onSelected: (Long?) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selected = sources.firstOrNull { it.id == selectedId }
+    val display = selected?.let { PaymentSourceInference.sourceLabel(it) } ?: "Não informar"
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+    ) {
+        OutlinedTextField(
+            value = display,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Conta ou cartão") },
+            supportingText = { Text(hint) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text("Não informar") },
+                onClick = {
+                    onSelected(null)
+                    expanded = false
+                },
+            )
+            sources.forEach { source ->
+                DropdownMenuItem(
+                    text = { Text(PaymentSourceInference.sourceLabel(source)) },
+                    onClick = {
+                        onSelected(source.id)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CategoryDropdown(
+    label: String,
+    noneLabel: String,
+    options: List<Category>,
+    selectedId: Long?,
+    onSelected: (Long?) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selected = options.firstOrNull { it.id == selectedId }
+    val display = selected?.name ?: noneLabel
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+    ) {
+        OutlinedTextField(
+            value = display,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text(noneLabel) },
+                onClick = {
+                    onSelected(null)
+                    expanded = false
+                },
+            )
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.name) },
+                    onClick = {
+                        onSelected(option.id)
+                        expanded = false
+                    },
+                )
             }
         }
     }

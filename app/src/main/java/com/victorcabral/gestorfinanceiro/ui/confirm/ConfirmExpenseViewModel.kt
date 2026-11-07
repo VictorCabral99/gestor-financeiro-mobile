@@ -7,11 +7,13 @@ import com.victorcabral.gestorfinanceiro.data.entity.Category
 import com.victorcabral.gestorfinanceiro.data.entity.PaymentSource
 import com.victorcabral.gestorfinanceiro.data.repository.FinanceRepository
 import com.victorcabral.gestorfinanceiro.util.MoneyFormat
+import com.victorcabral.gestorfinanceiro.util.PaymentSourceInference
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -25,6 +27,8 @@ data class ConfirmUiState(
     val selectedCategoryId: Long? = null,
     val selectedSubcategoryId: Long? = null,
     val selectedPaymentSourceId: Long? = null,
+    /** Hint shown when conta/cartão was inferred from the bank notification. */
+    val paymentSourceHint: String? = null,
     val bankPackage: String? = null,
     val bankLabel: String? = null,
     val rawText: String? = null,
@@ -64,6 +68,25 @@ class ConfirmExpenseViewModel(
         if (pendingId != null) {
             viewModelScope.launch {
                 val pending = repository.getPending(pendingId) ?: return@launch
+                val sources = repository.observeVisiblePaymentSources().first()
+                val matched = PaymentSourceInference.match(
+                    sources = sources,
+                    bankLabel = pending.bankLabel,
+                    rawText = pending.rawText,
+                )
+                val modality = PaymentSourceInference.modalityLabel(
+                    PaymentSourceInference.inferType(pending.rawText),
+                )
+                val hint = when {
+                    matched != null && modality != null ->
+                        "Detectado na notificação: ${matched.name} · $modality"
+                    matched != null ->
+                        "Detectado na notificação: ${matched.name}"
+                    modality != null ->
+                        "A notificação indica $modality — escolha a fonte correspondente"
+                    else ->
+                        "Na maioria das compras o banco já indica conta (débito) ou cartão (crédito)"
+                }
                 _state.update {
                     it.copy(
                         amountText = pending.amountCents?.let { cents ->
@@ -77,6 +100,8 @@ class ConfirmExpenseViewModel(
                         needsManualReview = pending.needsManualReview || pending.amountCents == null,
                         occurredAtEpochMs = pending.receivedAtEpochMs,
                         pendingId = pending.id,
+                        selectedPaymentSourceId = matched?.id,
+                        paymentSourceHint = hint,
                     )
                 }
             }
@@ -93,7 +118,13 @@ class ConfirmExpenseViewModel(
 
     fun onSubcategorySelected(id: Long?) = _state.update { it.copy(selectedSubcategoryId = id) }
 
-    fun onPaymentSourceSelected(id: Long?) = _state.update { it.copy(selectedPaymentSourceId = id) }
+    fun onPaymentSourceSelected(id: Long?) = _state.update {
+        it.copy(
+            selectedPaymentSourceId = id,
+            // Keep the detection hint so the user understands the default.
+            paymentSourceHint = it.paymentSourceHint,
+        )
+    }
 
     fun save() {
         val current = _state.value
