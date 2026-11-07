@@ -21,10 +21,13 @@ data class ConfirmUiState(
     val selectedCategoryId: Long? = null,
     val bankPackage: String? = null,
     val bankLabel: String? = null,
+    val rawText: String? = null,
+    val needsManualReview: Boolean = false,
     val occurredAtEpochMs: Long = System.currentTimeMillis(),
     val pendingId: Long? = null,
     val error: String? = null,
     val saved: Boolean = false,
+    val discarded: Boolean = false,
 )
 
 class ConfirmExpenseViewModel(
@@ -35,7 +38,7 @@ class ConfirmExpenseViewModel(
     val state: StateFlow<ConfirmUiState> = _state.asStateFlow()
 
     val categories: StateFlow<List<Category>> = repository
-        .observeCategories()
+        .observeVisibleCategories()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     init {
@@ -51,6 +54,8 @@ class ConfirmExpenseViewModel(
                         description = pending.origin.orEmpty(),
                         bankPackage = pending.bankPackage,
                         bankLabel = pending.bankLabel,
+                        rawText = pending.rawText,
+                        needsManualReview = pending.needsManualReview || pending.amountCents == null,
                         occurredAtEpochMs = pending.receivedAtEpochMs,
                         pendingId = pending.id,
                     )
@@ -87,6 +92,17 @@ class ConfirmExpenseViewModel(
                 pendingIdToDismiss = current.pendingId,
             )
             _state.update { it.copy(saved = true, error = null) }
+        }
+    }
+
+    fun discard() {
+        val id = _state.value.pendingId ?: run {
+            _state.update { it.copy(discarded = true) }
+            return
+        }
+        viewModelScope.launch {
+            repository.dismissPending(id)
+            _state.update { it.copy(discarded = true) }
         }
     }
 

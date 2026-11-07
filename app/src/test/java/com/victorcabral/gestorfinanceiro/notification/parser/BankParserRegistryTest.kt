@@ -28,4 +28,18 @@ class BankParserRegistryTest {
         )
         assertThat(parsed).isNull()
     }
+
+    @Test
+    fun `fallback manual review keeps raw text`() {
+        val fallback = registry.fallbackManualReview(
+            packageName = KnownBankPackages.SANTANDER,
+            title = "Aviso",
+            text = "Algo aconteceu com R$ 10,00",
+            bigText = null,
+        )
+        assertThat(fallback).isNotNull()
+        assertThat(fallback!!.needsManualReview).isTrue()
+        assertThat(fallback.amountCents).isEqualTo(1000L)
+        assertThat(fallback.rawText).contains("Algo aconteceu")
+    }
 }

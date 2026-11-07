@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -48,7 +50,8 @@ fun OnboardingScreen(onContinue: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(24.dp),
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
@@ -60,16 +63,18 @@ fun OnboardingScreen(onContinue: () -> Unit) {
                 style = MaterialTheme.typography.bodyLarge,
             )
             Text(
-                text = "Para isso, o Android precisa que você ative o acesso a notificações " +
-                    "para este app. Nenhuma informação sai do aparelho.",
+                text = "1. Ative o acesso a notificações (listener) para este app.\n" +
+                    "2. Quando o banco notificar uma compra/Pix, nasce uma sugestão pendente.\n" +
+                    "3. Confirme valor, origem, descrição e categoria.\n\n" +
+                    "Nenhuma informação sai do aparelho.",
                 style = MaterialTheme.typography.bodyMedium,
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 text = if (enabled) {
-                    "Acesso a notificações: ativo"
+                    "Listener de notificações: ativo"
                 } else {
-                    "Acesso a notificações: desativado"
+                    "Listener de notificações: desativado"
                 },
                 style = MaterialTheme.typography.titleMedium,
                 color = if (enabled) {
@@ -92,7 +97,7 @@ fun OnboardingScreen(onContinue: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 enabled = enabled,
             ) {
-                Text(if (enabled) "Continuar" else "Ative o acesso para continuar")
+                Text(if (enabled) "Continuar" else "Ative o listener para continuar")
             }
             OutlinedButton(
                 onClick = onContinue,

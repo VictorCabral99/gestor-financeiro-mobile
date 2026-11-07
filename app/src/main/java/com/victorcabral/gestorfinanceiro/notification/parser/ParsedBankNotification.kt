@@ -2,7 +2,7 @@ package com.victorcabral.gestorfinanceiro.notification.parser
 
 /**
  * Result of parsing a bank push notification into a spend suggestion.
- * Parsers are intentionally lenient in the MVP — missing fields go to the confirm screen.
+ * Incomplete parses still produce a result so the UI can “revisar manualmente”.
  */
 data class ParsedBankNotification(
     val amountCents: Long?,
@@ -10,6 +10,7 @@ data class ParsedBankNotification(
     val bankPackage: String,
     val bankLabel: String,
     val rawText: String,
-    /** "high" | "medium" | "low" | "stub" — stub until real fixtures harden parsers. */
+    /** "high" | "medium" | "low" — low means manual review (raw text kept). */
     val confidence: String,
+    val needsManualReview: Boolean = confidence == "low",
 )

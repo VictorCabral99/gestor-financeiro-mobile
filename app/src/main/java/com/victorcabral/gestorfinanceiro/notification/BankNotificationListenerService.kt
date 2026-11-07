@@ -19,11 +19,17 @@ import kotlinx.coroutines.launch
 class BankNotificationListenerService : NotificationListenerService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var pipeline: NotificationPipeline
+    private lateinit var notifier: SuggestionNotifier
 
     override fun onCreate() {
         super.onCreate()
         val app = application as GestorFinanceiroApp
-        pipeline = NotificationPipeline(repository = app.repository)
+        notifier = SuggestionNotifier(applicationContext)
+        notifier.ensureChannel()
+        pipeline = NotificationPipeline(
+            repository = app.repository,
+            onInserted = { suggestion -> notifier.notifyNewSuggestion(suggestion) },
+        )
     }
 
     override fun onDestroy() {

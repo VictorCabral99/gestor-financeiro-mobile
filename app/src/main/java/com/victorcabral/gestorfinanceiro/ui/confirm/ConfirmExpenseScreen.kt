@@ -13,11 +13,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -40,8 +43,8 @@ fun ConfirmExpenseScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
 
-    LaunchedEffect(state.saved) {
-        if (state.saved) onSaved()
+    LaunchedEffect(state.saved, state.discarded) {
+        if (state.saved || state.discarded) onSaved()
     }
 
     Scaffold(
@@ -74,6 +77,32 @@ fun ConfirmExpenseScreen(
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                 )
+            }
+
+            if (state.needsManualReview) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    ),
+                ) {
+                    Text(
+                        text = "Revisar manualmente",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(start = 12.dp, top = 12.dp, end = 12.dp),
+                    )
+                    Text(
+                        text = "Não foi possível extrair todos os campos. Ajuste valor/origem e confirme.",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                    )
+                    if (!state.rawText.isNullOrBlank()) {
+                        Text(
+                            text = state.rawText.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                        )
+                    }
+                }
             }
 
             OutlinedTextField(
@@ -120,7 +149,7 @@ fun ConfirmExpenseScreen(
 
             if (state.error != null) {
                 Text(
-                    text = state.error!!,
+                    text = state.error.orEmpty(),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -131,6 +160,15 @@ fun ConfirmExpenseScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Salvar despesa")
+            }
+
+            if (state.pendingId != null) {
+                OutlinedButton(
+                    onClick = viewModel::discard,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Descartar sugestão")
+                }
             }
         }
     }

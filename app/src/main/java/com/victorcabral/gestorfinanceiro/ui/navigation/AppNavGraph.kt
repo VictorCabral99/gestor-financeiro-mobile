@@ -1,6 +1,7 @@
 package com.victorcabral.gestorfinanceiro.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -22,10 +23,19 @@ import com.victorcabral.gestorfinanceiro.ui.pending.PendingViewModel
 import com.victorcabral.gestorfinanceiro.util.NotificationAccess
 
 @Composable
-fun AppNavGraph(startDestination: String) {
+fun AppNavGraph(
+    startDestination: String,
+    openPendingOnLaunch: Boolean = false,
+) {
     val navController = rememberNavController()
     val app = LocalContext.current.applicationContext as GestorFinanceiroApp
     val repository = remember { app.repository }
+
+    LaunchedEffect(openPendingOnLaunch) {
+        if (openPendingOnLaunch && startDestination == Routes.HOME) {
+            navController.navigate(Routes.PENDING)
+        }
+    }
 
     NavHost(navController = navController, startDestination = startDestination) {
         composable(Routes.ONBOARDING) {

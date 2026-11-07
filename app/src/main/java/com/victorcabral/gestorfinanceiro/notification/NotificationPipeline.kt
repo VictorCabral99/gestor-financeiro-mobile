@@ -7,14 +7,27 @@ import com.victorcabral.gestorfinanceiro.notification.parser.BankParserRegistry
 import com.victorcabral.gestorfinanceiro.notification.parser.KnownBankPackages
 
 /**
- * Pure-ish orchestration: filter packages → parse → dedupe → persist.
+ * Pure-ish orchestration: filter packages → parse → fallback → dedupe → persist.
  * Unit-testable without Android Notification APIs.
  */
 class NotificationPipeline(
     private val registry: BankParserRegistry = BankParserRegistry(),
-    private val repository: FinanceRepository,
+    private val insertPending: suspend (PendingSuggestion) -> Long,
     private val clock: () -> Long = { System.currentTimeMillis() },
+    private val onInserted: (suspend (PendingSuggestion) -> Unit)? = null,
 ) {
+    constructor(
+        repository: FinanceRepository,
+        registry: BankParserRegistry = BankParserRegistry(),
+        clock: () -> Long = { System.currentTimeMillis() },
+        onInserted: (suspend (PendingSuggestion) -> Unit)? = null,
+    ) : this(
+        registry = registry,
+        insertPending = { repository.tryInsertPending(it) },
+        clock = clock,
+        onInserted = onInserted,
+    )
+
     fun isSupportedPackage(packageName: String): Boolean =
         packageName in KnownBankPackages.all && registry.parserFor(packageName) != null
 
@@ -29,6 +42,8 @@ class NotificationPipeline(
             return HandleResult.Ignored("unsupported_package")
         }
 
+        // null = ignore (security/token/declined). Incomplete parses still return
+        // a ParsedBankNotification with confidence=low and rawText for manual review.
         val parsed = registry.parse(packageName, title, text, bigText)
             ?: return HandleResult.Ignored("parser_skipped")
 
@@ -37,6 +52,7 @@ class NotificationPipeline(
             bankPackage = parsed.bankPackage,
             rawText = parsed.rawText,
             receivedAtEpochMs = receivedAt,
+            amountCents = parsed.amountCents,
         )
 
         val suggestion = PendingSuggestion(
@@ -48,13 +64,16 @@ class NotificationPipeline(
             dedupeKey = dedupeKey,
             receivedAtEpochMs = receivedAt,
             parseConfidence = parsed.confidence,
+            needsManualReview = parsed.needsManualReview,
         )
 
-        val rowId = repository.tryInsertPending(suggestion)
+        val rowId = insertPending(suggestion)
         return if (rowId == -1L) {
             HandleResult.Duplicate(dedupeKey)
         } else {
-            HandleResult.Inserted(rowId, suggestion)
+            val inserted = suggestion.copy(id = rowId)
+            onInserted?.invoke(inserted)
+            HandleResult.Inserted(rowId, inserted)
         }
     }
 

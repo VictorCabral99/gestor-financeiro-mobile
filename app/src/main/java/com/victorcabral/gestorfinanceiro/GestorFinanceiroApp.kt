@@ -3,6 +3,7 @@ package com.victorcabral.gestorfinanceiro
 import android.app.Application
 import com.victorcabral.gestorfinanceiro.data.AppDatabase
 import com.victorcabral.gestorfinanceiro.data.repository.FinanceRepository
+import com.victorcabral.gestorfinanceiro.notification.SuggestionNotifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,6 +26,7 @@ class GestorFinanceiroApp : Application() {
             categoryDao = database.categoryDao(),
             pendingSuggestionDao = database.pendingSuggestionDao(),
         )
+        SuggestionNotifier(this).ensureChannel()
         applicationScope.launch {
             repository.ensureDefaultCategoriesSeeded()
         }

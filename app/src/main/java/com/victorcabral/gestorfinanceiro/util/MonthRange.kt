@@ -21,6 +21,28 @@ data class MonthRange(
         }
     }
 
+    fun previous(): MonthRange {
+        val cal = Calendar.getInstance(TimeZone.getDefault()).apply {
+            clear()
+            set(Calendar.YEAR, year)
+            set(Calendar.MONTH, month)
+            set(Calendar.DAY_OF_MONTH, 1)
+            add(Calendar.MONTH, -1)
+        }
+        return of(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+    }
+
+    fun next(): MonthRange {
+        val cal = Calendar.getInstance(TimeZone.getDefault()).apply {
+            clear()
+            set(Calendar.YEAR, year)
+            set(Calendar.MONTH, month)
+            set(Calendar.DAY_OF_MONTH, 1)
+            add(Calendar.MONTH, 1)
+        }
+        return of(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH))
+    }
+
     companion object {
         fun current(nowMs: Long = System.currentTimeMillis()): MonthRange {
             val cal = Calendar.getInstance(TimeZone.getDefault())

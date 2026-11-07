@@ -18,8 +18,9 @@ data class PendingSuggestion(
     val rawText: String,
     val bankPackage: String,
     val bankLabel: String,
-    /** Hash of package + normalized text + coarse timestamp window for dedupe. */
+    /** Hash of package + normalized text + amount + coarse timestamp window. */
     val dedupeKey: String,
     val receivedAtEpochMs: Long,
-    val parseConfidence: String = "stub",
+    val parseConfidence: String = "low",
+    val needsManualReview: Boolean = false,
 )

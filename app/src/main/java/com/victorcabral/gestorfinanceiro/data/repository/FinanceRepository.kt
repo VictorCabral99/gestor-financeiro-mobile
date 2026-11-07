@@ -24,9 +24,11 @@ class FinanceRepository(
 
     fun observePendingCount(): Flow<Int> = pendingSuggestionDao.observeCount()
 
-    fun observeCategories(): Flow<List<Category>> = categoryDao.observeAll()
+    fun observeVisibleCategories(): Flow<List<Category>> = categoryDao.observeVisible()
 
-    suspend fun getCategories(): List<Category> = categoryDao.getAll()
+    fun observeAllCategories(): Flow<List<Category>> = categoryDao.observeAll()
+
+    suspend fun getVisibleCategories(): List<Category> = categoryDao.getVisible()
 
     suspend fun getPending(id: Long): PendingSuggestion? = pendingSuggestionDao.getById(id)
 
@@ -75,8 +77,8 @@ class FinanceRepository(
         categoryDao.update(category.copy(name = newName.trim()))
     }
 
-    suspend fun deleteCategory(category: Category) {
-        categoryDao.delete(category)
+    suspend fun setCategoryHidden(category: Category, hidden: Boolean) {
+        categoryDao.update(category.copy(isHidden = hidden))
     }
 
     suspend fun ensureDefaultCategoriesSeeded() {

@@ -2,4 +2,8 @@
 <resources>
     <string name="app_name">Gestor Financeiro</string>
     <string name="notification_listener_label">Gestor Financeiro — notificações bancárias</string>
+    <string name="suggestion_channel_name">Sugestões de despesa</string>
+    <string name="suggestion_channel_desc">Avisos quando uma notificação bancária gera sugestão</string>
+    <string name="suggestion_notif_title">Nova sugestão de despesa</string>
+    <string name="suggestion_notif_body">%1$s · %2$s · %3$s</string>
 </resources>

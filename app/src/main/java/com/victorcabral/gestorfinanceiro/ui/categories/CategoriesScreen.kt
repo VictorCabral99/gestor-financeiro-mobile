@@ -10,13 +10,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -36,6 +39,8 @@ fun CategoriesScreen(
 ) {
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val newName by viewModel.newName.collectAsStateWithLifecycle()
+    val editingId by viewModel.editingId.collectAsStateWithLifecycle()
+    val editName by viewModel.editName.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -57,7 +62,7 @@ fun CategoriesScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Categorias padrão vêm pré-carregadas (alimentação, transporte, moradia, lazer, outros).",
+                text = "Crie, renomeie ou oculte categorias. Ocultas somem do seletor de confirmação.",
                 style = MaterialTheme.typography.bodyMedium,
             )
             Row(
@@ -78,25 +83,59 @@ fun CategoriesScreen(
             HorizontalDivider()
             LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 items(categories, key = { it.id }) { category ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column {
-                            Text(category.name, style = MaterialTheme.typography.titleMedium)
-                            if (category.isDefault) {
-                                Text(
-                                    "padrão",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.secondary,
-                                )
+                    if (editingId == category.id) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            OutlinedTextField(
+                                value = editName,
+                                onValueChange = viewModel::onEditNameChange,
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                            )
+                            Button(onClick = { viewModel.commitRename(category) }) {
+                                Text("Salvar")
+                            }
+                            OutlinedButton(onClick = viewModel::cancelRename) {
+                                Text("Cancelar")
                             }
                         }
-                        IconButton(onClick = { viewModel.deleteCategory(category) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Excluir")
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(category.name, style = MaterialTheme.typography.titleMedium)
+                                val tags = buildList {
+                                    if (category.isDefault) add("padrão")
+                                    if (category.isHidden) add("oculta")
+                                }
+                                if (tags.isNotEmpty()) {
+                                    Text(
+                                        tags.joinToString(" · "),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                    )
+                                }
+                            }
+                            IconButton(onClick = { viewModel.startRename(category) }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Renomear")
+                            }
+                            IconButton(onClick = { viewModel.toggleHidden(category) }) {
+                                Icon(
+                                    if (category.isHidden) Icons.Default.Visibility
+                                    else Icons.Default.VisibilityOff,
+                                    contentDescription = if (category.isHidden) "Mostrar" else "Ocultar",
+                                )
+                            }
                         }
                     }
                     HorizontalDivider()

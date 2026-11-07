@@ -8,4 +8,6 @@ data class Category(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val isDefault: Boolean = false,
+    /** Soft-hide from pickers; retained for historical expenses. */
+    val isHidden: Boolean = false,
 )
