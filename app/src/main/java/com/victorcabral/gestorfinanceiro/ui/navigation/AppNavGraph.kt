@@ -10,11 +10,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.victorcabral.gestorfinanceiro.BuildConfig
 import com.victorcabral.gestorfinanceiro.GestorFinanceiroApp
 import com.victorcabral.gestorfinanceiro.ui.categories.CategoriesScreen
 import com.victorcabral.gestorfinanceiro.ui.categories.CategoriesViewModel
 import com.victorcabral.gestorfinanceiro.ui.confirm.ConfirmExpenseScreen
 import com.victorcabral.gestorfinanceiro.ui.confirm.ConfirmExpenseViewModel
+import com.victorcabral.gestorfinanceiro.ui.debug.NotificationSimulatorScreen
+import com.victorcabral.gestorfinanceiro.ui.debug.NotificationSimulatorViewModel
 import com.victorcabral.gestorfinanceiro.ui.home.HomeScreen
 import com.victorcabral.gestorfinanceiro.ui.home.HomeViewModel
 import com.victorcabral.gestorfinanceiro.ui.onboarding.OnboardingScreen
@@ -58,6 +61,11 @@ fun AppNavGraph(
                 onOpenCategories = { navController.navigate(Routes.CATEGORIES) },
                 onAddManual = { navController.navigate(Routes.confirm(null)) },
                 onOpenOnboarding = { navController.navigate(Routes.ONBOARDING) },
+                onOpenDebugSimulator = if (BuildConfig.DEBUG) {
+                    { navController.navigate(Routes.DEBUG_SIMULATOR) }
+                } else {
+                    null
+                },
             )
         }
 
@@ -80,6 +88,19 @@ fun AppNavGraph(
                 viewModel = vm,
                 onBack = { navController.popBackStack() },
             )
+        }
+
+        if (BuildConfig.DEBUG) {
+            composable(Routes.DEBUG_SIMULATOR) {
+                val vm: NotificationSimulatorViewModel = viewModel(
+                    factory = NotificationSimulatorViewModel.factory(app.notificationSimulator),
+                )
+                NotificationSimulatorScreen(
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() },
+                    onOpenPending = { navController.navigate(Routes.PENDING) },
+                )
+            }
         }
 
         composable(

@@ -85,6 +85,17 @@ Pacotes filtrados no MVP:
 
 Se o parse falhar parcialmente, a sugestão fica marcada para **revisar manualmente** com o texto cru.
 
+## Simulador de notificações (debug only)
+
+No APK **debug**, a home mostra um ícone de **besouro** (bug) na barra superior.
+
+1. Abra o app debug → (pule o onboarding se quiser) → toque no ícone de besouro.
+2. Escolha um fixture Nubank/Santander e toque em **Simular esta notificação**.
+3. Abra **Pendentes** (sino) para ver a sugestão gerada pelo mesmo pipeline do listener.
+
+**Abordagem:** injeção direta no `NotificationPipeline` com o `packageName` do banco (fixtures).  
+Não usamos `NotificationManager` para fingir ser outro app — o Android sempre atribui a notificação ao nosso package, então o listener filtrado por `com.nu.production` / `com.santander.app` não veria o spoof.
+
 ## Testes
 
 ```bash

@@ -5,6 +5,7 @@ object Routes {
     const val HOME = "home"
     const val PENDING = "pending"
     const val CATEGORIES = "categories"
+    const val DEBUG_SIMULATOR = "debug_simulator"
     const val CONFIRM = "confirm?pendingId={pendingId}"
 
     fun confirm(pendingId: Long? = null): String {

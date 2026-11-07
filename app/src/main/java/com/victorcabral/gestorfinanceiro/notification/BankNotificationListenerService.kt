@@ -26,10 +26,8 @@ class BankNotificationListenerService : NotificationListenerService() {
         val app = application as GestorFinanceiroApp
         notifier = SuggestionNotifier(applicationContext)
         notifier.ensureChannel()
-        pipeline = NotificationPipeline(
-            repository = app.repository,
-            onInserted = { suggestion -> notifier.notifyNewSuggestion(suggestion) },
-        )
+        // Share the same pipeline instance used by the debug simulator.
+        pipeline = app.notificationPipeline
     }
 
     override fun onDestroy() {

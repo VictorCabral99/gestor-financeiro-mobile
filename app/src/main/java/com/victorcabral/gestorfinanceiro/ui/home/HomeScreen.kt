@@ -14,10 +14,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Settings
+import com.victorcabral.gestorfinanceiro.BuildConfig
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
@@ -61,6 +63,7 @@ fun HomeScreen(
     onOpenCategories: () -> Unit,
     onAddManual: () -> Unit,
     onOpenOnboarding: () -> Unit,
+    onOpenDebugSimulator: (() -> Unit)? = null,
 ) {
     val expenses by viewModel.expenses.collectAsStateWithLifecycle()
     val totalCents by viewModel.totalCents.collectAsStateWithLifecycle()
@@ -98,6 +101,14 @@ fun HomeScreen(
                     }
                     IconButton(onClick = onOpenCategories) {
                         Icon(Icons.Default.Category, contentDescription = "Categorias")
+                    }
+                    if (BuildConfig.DEBUG && onOpenDebugSimulator != null) {
+                        IconButton(onClick = onOpenDebugSimulator) {
+                            Icon(
+                                Icons.Default.BugReport,
+                                contentDescription = "Simulador de notificações",
+                            )
+                        }
                     }
                     IconButton(onClick = onOpenOnboarding) {
                         Icon(Icons.Default.Settings, contentDescription = "Permissões")
