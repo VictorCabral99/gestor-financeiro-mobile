@@ -6,6 +6,9 @@ object Routes {
     const val PENDING = "pending"
     const val CATEGORIES = "categories"
     const val PAYMENT_SOURCES = "payment_sources"
+    const val INCOMES = "incomes"
+    const val FIXED_EXPENSES = "fixed_expenses"
+    const val INVOICES = "invoices"
     const val DEBUG_SIMULATOR = "debug_simulator"
     const val CONFIRM = "confirm?pendingId={pendingId}"
 

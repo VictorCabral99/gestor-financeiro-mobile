@@ -34,6 +34,9 @@ class GestorFinanceiroApp : Application() {
             categoryDao = database.categoryDao(),
             pendingSuggestionDao = database.pendingSuggestionDao(),
             paymentSourceDao = database.paymentSourceDao(),
+            incomeDao = database.incomeDao(),
+            fixedExpenseDao = database.fixedExpenseDao(),
+            cardInvoiceDao = database.cardInvoiceDao(),
         )
         val notifier = SuggestionNotifier(this).also { it.ensureChannel() }
         notificationPipeline = NotificationPipeline(

@@ -19,7 +19,13 @@ import com.victorcabral.gestorfinanceiro.ui.confirm.ConfirmExpenseViewModel
 import com.victorcabral.gestorfinanceiro.ui.dashboard.DashboardViewModel
 import com.victorcabral.gestorfinanceiro.ui.debug.NotificationSimulatorScreen
 import com.victorcabral.gestorfinanceiro.ui.debug.NotificationSimulatorViewModel
+import com.victorcabral.gestorfinanceiro.ui.fixed.FixedExpensesScreen
+import com.victorcabral.gestorfinanceiro.ui.fixed.FixedExpensesViewModel
 import com.victorcabral.gestorfinanceiro.ui.home.HomeViewModel
+import com.victorcabral.gestorfinanceiro.ui.incomes.IncomesScreen
+import com.victorcabral.gestorfinanceiro.ui.incomes.IncomesViewModel
+import com.victorcabral.gestorfinanceiro.ui.invoices.InvoicesScreen
+import com.victorcabral.gestorfinanceiro.ui.invoices.InvoicesViewModel
 import com.victorcabral.gestorfinanceiro.ui.main.MainScaffold
 import com.victorcabral.gestorfinanceiro.ui.onboarding.OnboardingScreen
 import com.victorcabral.gestorfinanceiro.ui.payments.PaymentSourcesScreen
@@ -67,6 +73,9 @@ fun AppNavGraph(
                 onOpenPending = { navController.navigate(Routes.PENDING) },
                 onOpenCategories = { navController.navigate(Routes.CATEGORIES) },
                 onOpenPaymentSources = { navController.navigate(Routes.PAYMENT_SOURCES) },
+                onOpenIncomes = { navController.navigate(Routes.INCOMES) },
+                onOpenFixedExpenses = { navController.navigate(Routes.FIXED_EXPENSES) },
+                onOpenInvoices = { navController.navigate(Routes.INVOICES) },
                 onAddManual = { navController.navigate(Routes.confirm(null)) },
                 onOpenOnboarding = { navController.navigate(Routes.ONBOARDING) },
                 onOpenDebugSimulator = if (BuildConfig.DEBUG) {
@@ -103,6 +112,36 @@ fun AppNavGraph(
                 factory = PaymentSourcesViewModel.factory(repository),
             )
             PaymentSourcesScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.INCOMES) {
+            val vm: IncomesViewModel = viewModel(
+                factory = IncomesViewModel.factory(repository),
+            )
+            IncomesScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.FIXED_EXPENSES) {
+            val vm: FixedExpensesViewModel = viewModel(
+                factory = FixedExpensesViewModel.factory(repository),
+            )
+            FixedExpensesScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.INVOICES) {
+            val vm: InvoicesViewModel = viewModel(
+                factory = InvoicesViewModel.factory(repository),
+            )
+            InvoicesScreen(
                 viewModel = vm,
                 onBack = { navController.popBackStack() },
             )

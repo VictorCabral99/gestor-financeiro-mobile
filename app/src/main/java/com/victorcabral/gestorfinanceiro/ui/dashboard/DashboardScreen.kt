@@ -1,5 +1,6 @@
 package com.victorcabral.gestorfinanceiro.ui.dashboard
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -36,14 +38,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.victorcabral.gestorfinanceiro.util.MoneyFormat
 import com.victorcabral.gestorfinanceiro.util.NotificationAccess
+
+private val PositiveGreen = Color(0xFF1B5E20)
+private val NegativeRed = Color(0xFF8B1E1E)
+private val CardBorder = Color(0xFFBDBDBD)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,10 +65,14 @@ fun DashboardScreen(
     onAddManual: () -> Unit,
     onOpenReports: () -> Unit,
     onOpenOnboarding: () -> Unit,
+    onOpenIncomes: () -> Unit,
+    onOpenFixedExpenses: () -> Unit,
+    onOpenInvoices: () -> Unit,
 ) {
+    val guide by viewModel.guide.collectAsStateWithLifecycle()
     val totalCents by viewModel.totalCents.collectAsStateWithLifecycle()
     val expenseCount by viewModel.expenseCount.collectAsStateWithLifecycle()
-    val pendingCount by viewModel.pendingCount.collectAsStateWithLifecycle()
+    val suggestionCount by viewModel.suggestionCount.collectAsStateWithLifecycle()
     val topCategories by viewModel.topCategories.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
@@ -82,12 +97,12 @@ fun DashboardScreen(
                     IconButton(onClick = onOpenPending) {
                         BadgedBox(
                             badge = {
-                                if (pendingCount > 0) {
-                                    Badge { Text(pendingCount.toString()) }
+                                if (suggestionCount > 0) {
+                                    Badge { Text(suggestionCount.toString()) }
                                 }
                             },
                         ) {
-                            Icon(Icons.Default.Notifications, contentDescription = "Pendentes")
+                            Icon(Icons.Default.Notifications, contentDescription = "Sugestões")
                         }
                     }
                 },
@@ -142,30 +157,73 @@ fun DashboardScreen(
             }
 
             Text(viewModel.monthLabel, style = MaterialTheme.typography.titleMedium)
+
+            Text(
+                text = "Saldo atual – pendentes até o fim do mês – faturas ainda em aberto",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    GuideCard(
+                        label = "Caixa",
+                        amountCents = guide.caixaCents,
+                        positiveIsGood = true,
+                        onClick = onOpenIncomes,
+                        modifier = Modifier.weight(1f),
+                    )
+                    GuideCard(
+                        label = "Pendentes",
+                        amountCents = guide.fixedPendingCents,
+                        positiveIsGood = false,
+                        onClick = onOpenFixedExpenses,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    GuideCard(
+                        label = "Faturas",
+                        amountCents = guide.openInvoicesCents,
+                        positiveIsGood = false,
+                        onClick = onOpenInvoices,
+                        modifier = Modifier.weight(1f),
+                    )
+                    GuideCard(
+                        label = "Livre",
+                        amountCents = guide.livreCents,
+                        positiveIsGood = true,
+                        onClick = null,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            Text(
+                text = "Caixa sobe com salário/receitas e desce com gastos em conta. " +
+                    "Pendentes = despesas fixas. Faturas = cartão do mês. Livre = Caixa − Pendentes − Faturas.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+            Text("Movimentação do mês", style = MaterialTheme.typography.titleMedium)
             Text(
                 MoneyFormat.formatCents(totalCents),
-                style = MaterialTheme.typography.displaySmall,
+                style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Text("Total gasto neste mês", style = MaterialTheme.typography.bodyMedium)
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                StatCard(
-                    title = "Despesas",
-                    value = expenseCount.toString(),
-                    modifier = Modifier.weight(1f),
-                    onClick = onOpenReports,
-                )
-                StatCard(
-                    title = "Pendentes",
-                    value = pendingCount.toString(),
-                    modifier = Modifier.weight(1f),
-                    onClick = onOpenPending,
-                )
-            }
+            Text(
+                "$expenseCount despesas registradas",
+                style = MaterialTheme.typography.bodyMedium,
+            )
 
             Text("Por categoria", style = MaterialTheme.typography.titleMedium)
             if (topCategories.isEmpty()) {
@@ -204,21 +262,44 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun StatCard(
-    title: String,
-    value: String,
+private fun GuideCard(
+    label: String,
+    amountCents: Long,
+    positiveIsGood: Boolean,
+    onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit,
 ) {
-    Card(
-        modifier = modifier.clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+    val valueColor = when {
+        amountCents > 0L && positiveIsGood -> PositiveGreen
+        amountCents < 0L -> NegativeRed
+        amountCents > 0L && !positiveIsGood -> NegativeRed
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    val shape = RoundedCornerShape(10.dp)
+    Column(
+        modifier = modifier
+            .border(1.dp, CardBorder, shape)
+            .then(
+                if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
+            )
+            .padding(horizontal = 8.dp, vertical = 12.dp),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.labelLarge)
-            Text(value, style = MaterialTheme.typography.headlineMedium)
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = MoneyFormat.formatCents(amountCents),
+            color = valueColor,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Serif,
+            fontSize = 18.sp,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Clip,
+            modifier = Modifier.padding(top = 8.dp),
+        )
     }
 }

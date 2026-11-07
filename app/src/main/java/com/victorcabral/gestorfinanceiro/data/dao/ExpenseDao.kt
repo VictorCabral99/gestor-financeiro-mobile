@@ -50,6 +50,17 @@ interface ExpenseDao {
     )
     fun observeCountBetween(startInclusive: Long, endExclusive: Long): Flow<Int>
 
+    /** Gastos em conta (débito) — saem do Caixa. */
+    @Query(
+        """
+        SELECT COALESCE(SUM(e.amountCents), 0) FROM expenses e
+        INNER JOIN payment_sources p ON e.paymentSourceId = p.id
+        WHERE e.occurredAtEpochMs BETWEEN :startInclusive AND :endExclusive
+          AND p.type = 'ACCOUNT'
+        """,
+    )
+    fun observeAccountSpendBetween(startInclusive: Long, endExclusive: Long): Flow<Long>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(expense: Expense): Long
 

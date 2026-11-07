@@ -8,7 +8,7 @@ MVP local-only — sem backend. Sem publicação na Play Store neste repositóri
 
 - Kotlin, minSdk **26** (Android 8+), target/compileSdk **35**
 - Jetpack Compose + Navigation
-- Room (Expense, Category, PendingSuggestion)
+- Room (Expense, Category, PendingSuggestion, PaymentSource, Income, FixedExpense, CardInvoice)
 - `NotificationListenerService` + parsers por `packageName`
 - Notificação local opcional ao criar sugestão (`POST_NOTIFICATIONS` no Android 13+)
 
@@ -80,9 +80,20 @@ Pacotes filtrados no MVP:
 
 1. Banco notifica compra/Pix → listener → parser → dedupe → `PendingSuggestion`
 2. **Pendentes** → **Confirmar** (valor, estabelecimento, conta/cartão, categoria/subcategoria)
-3. Tab **Home** — dashboards; tab **Relatórios** — registros do mês; tab **Config** — cadastros
+3. Tab **Home** — guia do mês (**Caixa · Pendentes · Faturas · Livre**); tab **Relatórios** — registros; tab **Config** — cadastros
 4. Conta = débito · Cartão = crédito (implícito ao escolher a fonte)
 5. Categorias com **um** nível de subcategoria
+
+### Guia do mês (Home)
+
+| Card | Significado |
+|------|-------------|
+| **Caixa** | Receitas (salário) − gastos em **conta** no mês |
+| **Pendentes** | Soma das **despesas fixas** ativas |
+| **Faturas** | Faturas de **cartão** do mês ainda em aberto |
+| **Livre** | `Caixa − Pendentes − Faturas` (o que sobra de verdade) |
+
+Cadastre receitas, fixas e faturas pela Home (toque no card) ou em **Config**.
 
 Se o parse falhar parcialmente, a sugestão fica marcada para **revisar manualmente** com o texto cru.
 

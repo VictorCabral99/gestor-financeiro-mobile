@@ -7,12 +7,18 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.victorcabral.gestorfinanceiro.data.dao.CardInvoiceDao
 import com.victorcabral.gestorfinanceiro.data.dao.CategoryDao
 import com.victorcabral.gestorfinanceiro.data.dao.ExpenseDao
+import com.victorcabral.gestorfinanceiro.data.dao.FixedExpenseDao
+import com.victorcabral.gestorfinanceiro.data.dao.IncomeDao
 import com.victorcabral.gestorfinanceiro.data.dao.PaymentSourceDao
 import com.victorcabral.gestorfinanceiro.data.dao.PendingSuggestionDao
+import com.victorcabral.gestorfinanceiro.data.entity.CardInvoice
 import com.victorcabral.gestorfinanceiro.data.entity.Category
 import com.victorcabral.gestorfinanceiro.data.entity.Expense
+import com.victorcabral.gestorfinanceiro.data.entity.FixedExpense
+import com.victorcabral.gestorfinanceiro.data.entity.Income
 import com.victorcabral.gestorfinanceiro.data.entity.PaymentSource
 import com.victorcabral.gestorfinanceiro.data.entity.PendingSuggestion
 
@@ -22,8 +28,11 @@ import com.victorcabral.gestorfinanceiro.data.entity.PendingSuggestion
         Category::class,
         PendingSuggestion::class,
         PaymentSource::class,
+        Income::class,
+        FixedExpense::class,
+        CardInvoice::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -32,6 +41,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun pendingSuggestionDao(): PendingSuggestionDao
     abstract fun paymentSourceDao(): PaymentSourceDao
+    abstract fun incomeDao(): IncomeDao
+    abstract fun fixedExpenseDao(): FixedExpenseDao
+    abstract fun cardInvoiceDao(): CardInvoiceDao
 
     companion object {
         @Volatile
@@ -67,7 +79,6 @@ abstract class AppDatabase : RoomDatabase() {
                     "CREATE INDEX IF NOT EXISTS index_payment_sources_isHidden ON payment_sources(isHidden)",
                 )
 
-                // Recreate categories with parentId (self-FK).
                 db.execSQL(
                     """
                     CREATE TABLE IF NOT EXISTS categories_new (
@@ -91,7 +102,6 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_categories_parentId ON categories(parentId)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_categories_isHidden ON categories(isHidden)")
 
-                // Recreate expenses with subcategoryId + paymentSourceId.
                 db.execSQL(
                     """
                     CREATE TABLE IF NOT EXISTS expenses_new (
@@ -138,6 +148,67 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS incomes (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        amountCents INTEGER NOT NULL,
+                        description TEXT NOT NULL,
+                        paymentSourceId INTEGER,
+                        occurredAtEpochMs INTEGER NOT NULL,
+                        createdAtEpochMs INTEGER NOT NULL,
+                        FOREIGN KEY(paymentSourceId) REFERENCES payment_sources(id) ON DELETE SET NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_incomes_occurredAtEpochMs ON incomes(occurredAtEpochMs)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_incomes_paymentSourceId ON incomes(paymentSourceId)",
+                )
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS fixed_expenses (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        amountCents INTEGER NOT NULL,
+                        dueDayOfMonth INTEGER,
+                        isActive INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_fixed_expenses_isActive ON fixed_expenses(isActive)",
+                )
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS card_invoices (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        paymentSourceId INTEGER NOT NULL,
+                        year INTEGER NOT NULL,
+                        month INTEGER NOT NULL,
+                        amountCents INTEGER NOT NULL,
+                        isPaid INTEGER NOT NULL,
+                        FOREIGN KEY(paymentSourceId) REFERENCES payment_sources(id) ON DELETE CASCADE
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    CREATE UNIQUE INDEX IF NOT EXISTS index_card_invoices_paymentSourceId_year_month
+                    ON card_invoices(paymentSourceId, year, month)
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_card_invoices_year ON card_invoices(year)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_card_invoices_month ON card_invoices(month)")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -145,7 +216,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "gestor_financeiro.db",
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { instance = it }
             }

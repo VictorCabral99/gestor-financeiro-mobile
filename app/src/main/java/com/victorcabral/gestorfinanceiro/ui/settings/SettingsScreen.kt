@@ -10,8 +10,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +34,9 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     onOpenCategories: () -> Unit,
     onOpenPaymentSources: () -> Unit,
+    onOpenIncomes: () -> Unit,
+    onOpenFixedExpenses: () -> Unit,
+    onOpenInvoices: () -> Unit,
     onOpenOnboarding: () -> Unit,
     onOpenPending: () -> Unit,
     onOpenDebugSimulator: (() -> Unit)?,
@@ -47,6 +53,24 @@ fun SettingsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
         ) {
+            SettingsRow(
+                icon = { Icon(Icons.Default.AttachMoney, contentDescription = null) },
+                title = "Receitas / salário",
+                subtitle = "Alimenta o Caixa da Home",
+                onClick = onOpenIncomes,
+            )
+            SettingsRow(
+                icon = { Icon(Icons.Default.EventRepeat, contentDescription = null) },
+                title = "Despesas fixas",
+                subtitle = "Pendentes até o fim do mês",
+                onClick = onOpenFixedExpenses,
+            )
+            SettingsRow(
+                icon = { Icon(Icons.Default.CreditCard, contentDescription = null) },
+                title = "Faturas do cartão",
+                subtitle = "Valor em aberto no mês",
+                onClick = onOpenInvoices,
+            )
             SettingsRow(
                 icon = { Icon(Icons.Default.Category, contentDescription = null) },
                 title = "Categorias e subcategorias",

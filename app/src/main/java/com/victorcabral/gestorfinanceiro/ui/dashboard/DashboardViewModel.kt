@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.victorcabral.gestorfinanceiro.data.dao.CategorySpendRow
 import com.victorcabral.gestorfinanceiro.data.entity.Category
 import com.victorcabral.gestorfinanceiro.data.repository.FinanceRepository
+import com.victorcabral.gestorfinanceiro.data.repository.MonthGuideTotals
 import com.victorcabral.gestorfinanceiro.util.MonthRange
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +26,14 @@ class DashboardViewModel(
 
     val monthLabel: String = month.labelPtBr()
 
+    val guide: StateFlow<MonthGuideTotals> = repository
+        .observeMonthGuide(month)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            MonthGuideTotals(0, 0, 0),
+        )
+
     val totalCents: StateFlow<Long> = repository
         .observeMonthTotalCents(month)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0L)
@@ -33,7 +42,7 @@ class DashboardViewModel(
         .observeMonthCount(month)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    val pendingCount: StateFlow<Int> = repository
+    val suggestionCount: StateFlow<Int> = repository
         .observePendingCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
